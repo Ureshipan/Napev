@@ -22,6 +22,7 @@ CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 10
 pygame.init()
+pygame.mixer.init()
 info = pygame.display.Info()
 FPS = 30
 width = info.current_w
@@ -29,10 +30,6 @@ height = info.current_h
 WINDOW_SIZE = (width, height)
 rec = False
 bar = None
-
-
-def load_music(menu):
-    pass
 
 
 def make_long_menu():
@@ -125,7 +122,9 @@ def make_long_menu():
 
 
 def play_music(filepath):
-    os.startfile(os.path.join(os.path.abspath(os.curdir), filepath))
+    #os.startfile(os.path.join(os.path.abspath(os.curdir), filepath))
+    pygame.mixer.music.load(os.path.join(os.path.abspath(os.curdir), filepath))
+    pygame.mixer.music.play()
 
 
 def reco(men):
