@@ -1,6 +1,7 @@
 __all__ = ['main']
 
 import pyaudio
+import pydub
 import wave
 
 import io
@@ -16,6 +17,7 @@ from PIL import Image
 
 from threading import Thread
 
+pydub.AudioSegment.converter = r"C:\Users\Test\Documents\ffmpeg-2021-11-10-git-44c65c6cc0-full_build\bin\ffmpeg.exe"
 CHUNK = 1024
 FORMAT = pyaudio.paInt32
 CHANNELS = 1
@@ -131,12 +133,17 @@ def reco(men):
     if not os.path.exists('chants/' + str(men.get_title()) + '/'):
         os.mkdir('chants/' + str(men.get_title()) + '/')
 
-    filename = 'chants/' + str(men.get_title()) + '/{}.wav'.format(
+    wavfilename = 'chants/' + str(men.get_title()) + '/{}.wav'.format(
+        len(os.listdir('chants/' + str(men.get_title()) + '/')))
+
+    mp3filename = 'chants/' + str(men.get_title()) + '/{}.mp3'.format(
         len(os.listdir('chants/' + str(men.get_title()) + '/')))
 
     p = pyaudio.PyAudio()
 
-    os.startfile(os.path.join(os.path.abspath(os.curdir), 'silent.wav'))
+    #os.startfile(os.path.join(os.path.abspath(os.curdir), 'silent.wav'))
+    pygame.mixer.music.stop()
+    pygame.mixer.music.unload()
 
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
@@ -159,13 +166,17 @@ def reco(men):
     stream.close()
     p.terminate()
 
-    wf = wave.open(filename, 'wb')
+    wf = wave.open(wavfilename, 'wb')
     wf.setnchannels(CHANNELS)
     wf.setsampwidth(p.get_sample_size(FORMAT))
     wf.setframerate(RATE)
     wf.writeframes(b''.join(frames))
     print('saving')
     wf.close()
+
+    sound = pydub.AudioSegment.from_wav(wavfilename)
+    sound.export(mp3filename, format="mp3")
+    os.remove(wavfilename)
 
 
 def ini_record(men, barx):
@@ -180,17 +191,19 @@ def ini_record(men, barx):
 
 def lisn_chant(men, barx):
     if barx.get_value() == 100:
-        filename = 'chants/' + str(men.get_title()) + '/{}.wav'.format(
+        filename = 'chants/' + str(men.get_title()) + '/{}.mp3'.format(
             len(os.listdir('chants/' + str(men.get_title()) + '/')) - 1)
-        os.startfile(os.path.join(os.path.abspath(os.curdir), filename))
+        pygame.mixer.music.load(os.path.join(os.path.abspath(os.curdir), filename))
+        pygame.mixer.music.play()
 
 
 def del_chant(men, barx):
     print('deleting')
-    os.startfile(os.path.join(os.path.abspath(os.curdir), 'silent.wav'))
-    print(barx.get_value())
+    #os.startfile(os.path.join(os.path.abspath(os.curdir), 'silent.wav'))
+    pygame.mixer.music.stop()
+    pygame.mixer.music.unload()
     if barx.get_value() == 100:
-        filename = 'chants/' + str(men.get_title()) + '/{}.wav'.format(
+        filename = 'chants/' + str(men.get_title()) + '/{}.mp3'.format(
             len(os.listdir('chants/' + str(men.get_title()) + '/')) - 1)
         print(filename)
         os.remove(os.path.join(os.path.abspath(os.curdir), filename))
