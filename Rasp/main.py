@@ -17,7 +17,7 @@ from PIL import Image
 
 from threading import Thread
 
-pydub.AudioSegment.converter = r"C:\Users\Test\Documents\ffmpeg-2021-11-10-git-44c65c6cc0-full_build\bin\ffmpeg.exe"
+#pydub.AudioSegment.converter = r"C:\Users\Test\Documents\ffmpeg-2021-11-10-git-44c65c6cc0-full_build\bin\ffmpeg.exe"
 CHUNK = 1024
 FORMAT = pyaudio.paInt32
 CHANNELS = 1
@@ -30,7 +30,7 @@ FPS = 30
 width = info.current_w
 height = info.current_h
 WINDOW_SIZE = (width, height)
-font_size = 22
+font_size = 25
 rec = False
 bar = None
 load = True
@@ -112,6 +112,9 @@ def make_long_menu(load_bar):
         track_menu.add.button('Play track', play_music, track, align=pygame_menu.locals.ALIGN_LEFT,
                               background_color=(0, 128, 0), float=False, font_size=font_size, font_color=(0, 0, 0),
                               selection_color=(0, 0, 0), border_color=(0, 0, 0))
+        track_menu.add.button('>>10>>', ff, track, align=pygame_menu.locals.ALIGN_LEFT,
+                              background_color=(0, 128, 0), float=False, font_size=font_size, font_color=(0, 0, 0),
+                              selection_color=(0, 0, 0), border_color=(0, 0, 0))
         prbar = track_menu.add.progress_bar('Record progress:', 0, float=True, font_size=font_size, font_collor=(0, 0, 0),
                                             box_background_color=out)
         track_menu.add.button('Record the chant', ini_record, track_menu, prbar,
@@ -138,6 +141,18 @@ def play_music(filepath):
     pygame.mixer.music.play()
 
 
+def ff(filepath):
+    oldsongtime = pygame.mixer.music.get_pos()
+    change = 10000
+    print(oldsongtime)
+    pygame.mixer.music.play(0, start=(oldsongtime + change) / 1000)
+    addedtime = pygame.mixer.music.get_pos()
+    print(addedtime)
+
+
+def rev(filepath):
+    pass
+
 def reco(men):
     if not os.path.exists('chants/' + str(men.get_title()) + '/'):
         os.mkdir('chants/' + str(men.get_title()) + '/')
@@ -157,7 +172,7 @@ def reco(men):
                     rate=RATE,
                     input=True,
                     frames_per_buffer=CHUNK,
-                    input_device_index=1)
+                    input_device_index=p.get_default_input_device_info()['index'])
 
     print("* recording")
 
@@ -235,7 +250,8 @@ def main(test=False):
         width=width
     )
 
-    load_progress = loading.add.progress_bar('Loading', font_size=(font_size + 10), font_collor=(0, 0, 0))
+    load_progress = loading.add.progress_bar('', font_size=(font_size + 10), font_collor=(0, 0, 0),
+                                             width=(width - 300))
     load_tr = Thread(target=make_long_menu, args=(load_progress, ))
     load_tr.start()
 
