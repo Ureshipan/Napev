@@ -30,26 +30,32 @@ FPS = 30
 width = info.current_w
 height = info.current_h
 WINDOW_SIZE = (width, height)
+font_size = 22
 rec = False
 bar = None
+load = True
+screen = pygame.display.set_mode(WINDOW_SIZE, pygame.FULLSCREEN)
+
+theme_menu = pygame_menu.themes.THEME_DARK.copy()
+theme_menu.widget_font_size = font_size
+
+# Main menu, pauses execution of the application
+menu = pygame_menu.Menu(
+    height=height,
+    onclose=pygame_menu.events.EXIT,
+    theme=theme_menu,
+    title='Choose track',
+    width=width
+)
 
 
-def make_long_menu():
+def make_long_menu(load_bar):
+    global load, menu
+    load = True
     """
     Create a long scrolling menu.
     :return: Menu
     """
-    theme_menu = pygame_menu.themes.THEME_DARK.copy()
-    theme_menu.widget_font_size = 11
-
-    # Main menu, pauses execution of the application
-    menu = pygame_menu.Menu(
-        height=height,
-        onclose=pygame_menu.events.EXIT,
-        theme=theme_menu,
-        title='Choose track',
-        width=width
-    )
 
     path = 'mp3 music/'
     files = []
@@ -58,7 +64,11 @@ def make_long_menu():
     for i in range(len(files)):
         files[i] = 'mp3 music/' + files[i]
 
+    pr = 0
     for track in files:
+        pr += 1
+        print(int(pr / len(files) * 100))
+        load_bar.set_value(int(pr / len(files) * 100))
         tag = TinyTag.get(track, image=True)
         f = open('cover.png', 'wb')
         f.write(tag.get_image())
@@ -89,7 +99,7 @@ def make_long_menu():
 
         print('[{}]: \"{}\" Success'.format(tag.artist, tag.title))
         theme = pygame_menu.themes.THEME_GREEN.copy()
-        theme.title_font_size = 11
+        theme.title_font_size = font_size
         theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_SIMPLE
         theme.background_color = out
         track_menu = pygame_menu.Menu(height=height,
@@ -100,31 +110,30 @@ def make_long_menu():
                                       width=width
                                       )
         track_menu.add.button('Play track', play_music, track, align=pygame_menu.locals.ALIGN_LEFT,
-                              background_color=(0, 128, 0), float=False, font_size=11, font_color=(0, 0, 0),
+                              background_color=(0, 128, 0), float=False, font_size=font_size, font_color=(0, 0, 0),
                               selection_color=(0, 0, 0), border_color=(0, 0, 0))
-        prbar = track_menu.add.progress_bar('Record progress:', 0, float=True, font_size=11, font_collor=(0, 0, 0),
+        prbar = track_menu.add.progress_bar('Record progress:', 0, float=True, font_size=font_size, font_collor=(0, 0, 0),
                                             box_background_color=out)
         track_menu.add.button('Record the chant', ini_record, track_menu, prbar,
                               align=pygame_menu.locals.ALIGN_RIGHT, background_color=(214, 70, 54),
-                              float=True, font_size=11, font_color=(0, 0, 0), selection_color=(0, 0, 0),
+                              float=True, font_size=font_size, font_color=(0, 0, 0), selection_color=(0, 0, 0),
                               border_color=(0, 0, 0))
         track_menu.add.button('Listen record', lisn_chant, track_menu, prbar,
                               align=pygame_menu.locals.ALIGN_RIGHT, background_color=(154, 205, 50),
-                              float=False, font_size=11, font_color=(0, 0, 0), selection_color=(0, 0, 0),
+                              float=False, font_size=font_size, font_color=(0, 0, 0), selection_color=(0, 0, 0),
                               border_color=(0, 0, 0))
         track_menu.add.button('Delete record', del_chant, track_menu, prbar,
                               align=pygame_menu.locals.ALIGN_RIGHT, background_color=(139, 0, 0),
-                              float=False, font_size=11, font_color=(0, 0, 0), selection_color=(0, 0, 0),
+                              float=False, font_size=font_size, font_color=(0, 0, 0), selection_color=(0, 0, 0),
                               border_color=(0, 0, 0))
-        track_menu.add.image('cover.png', angle=0, scale=(0.5, 0.5), float=True)
+        track_menu.add.image('cover.png', angle=0, scale=(1, 1), float=True)
 
         menu.add.button(track_menu.get_title(), track_menu)
 
-    return menu
+    load = False
 
 
 def play_music(filepath):
-    #os.startfile(os.path.join(os.path.abspath(os.curdir), filepath))
     pygame.mixer.music.load(os.path.join(os.path.abspath(os.curdir), filepath))
     pygame.mixer.music.play()
 
@@ -140,8 +149,6 @@ def reco(men):
         len(os.listdir('chants/' + str(men.get_title()) + '/')))
 
     p = pyaudio.PyAudio()
-
-    #os.startfile(os.path.join(os.path.abspath(os.curdir), 'silent.wav'))
     pygame.mixer.music.stop()
     pygame.mixer.music.unload()
 
@@ -199,7 +206,6 @@ def lisn_chant(men, barx):
 
 def del_chant(men, barx):
     print('deleting')
-    #os.startfile(os.path.join(os.path.abspath(os.curdir), 'silent.wav'))
     pygame.mixer.music.stop()
     pygame.mixer.music.unload()
     if barx.get_value() == 100:
@@ -218,14 +224,38 @@ def main(test=False):
     :return: None
     """
 
-    screen = pygame.display.set_mode(WINDOW_SIZE, pygame.FULLSCREEN)
     clock = pygame.time.Clock()
-    menu = make_long_menu()
+
+    # Main menu, pauses execution of the application
+    loading = pygame_menu.Menu(
+        height=height,
+        onclose=pygame_menu.events.EXIT,
+        theme=theme_menu,
+        title='Подождите, идёт загрузка треков',
+        width=width
+    )
+
+    load_progress = loading.add.progress_bar('Loading', font_size=(font_size + 10), font_collor=(0, 0, 0))
+    load_tr = Thread(target=make_long_menu, args=(load_progress, ))
+    load_tr.start()
 
     # -------------------------------------------------------------------------
     # Main loop
     # -------------------------------------------------------------------------
     tick = 0
+    while load:
+        clock.tick(FPS)
+        loading.mainloop(
+            surface=screen,
+            disable_loop=True,
+            fps_limit=FPS
+        )
+
+        # Update surface
+        pygame.display.flip()
+
+    loading.add.button('Начать', menu)
+
     while True:
 
         # Tick
@@ -244,7 +274,7 @@ def main(test=False):
         # paint_background(screen)
 
         # Execute main from principal menu if is enabled
-        menu.mainloop(
+        loading.mainloop(
             surface=screen,
             disable_loop=True,
             fps_limit=FPS
