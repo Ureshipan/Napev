@@ -17,7 +17,7 @@ from PIL import Image
 
 from threading import Thread
 
-#pydub.AudioSegment.converter = r"C:\Users\Test\Documents\ffmpeg-2021-11-10-git-44c65c6cc0-full_build\bin\ffmpeg.exe"
+pydub.AudioSegment.converter = r"ffmpeg-2021-11-15-git-9e8cdb24cd-full_build\bin\ffmpeg.exe"
 CHUNK = 1024
 FORMAT = pyaudio.paInt32
 CHANNELS = 1
@@ -31,6 +31,7 @@ width = info.current_w
 height = info.current_h
 WINDOW_SIZE = (width, height)
 font_size = 25
+start_pos = 0
 rec = False
 bar = None
 load = True
@@ -39,23 +40,19 @@ screen = pygame.display.set_mode(WINDOW_SIZE, pygame.FULLSCREEN)
 theme_menu = pygame_menu.themes.THEME_DARK.copy()
 theme_menu.widget_font_size = font_size
 
-# Main menu, pauses execution of the application
 menu = pygame_menu.Menu(
     height=height,
     onclose=pygame_menu.events.EXIT,
     theme=theme_menu,
-    title='Choose track',
-    width=width
+    title='Выберете трек',
+    width=width,
+    mouse_motion_selection=True
 )
 
 
 def make_long_menu(load_bar):
     global load, menu
     load = True
-    """
-    Create a long scrolling menu.
-    :return: Menu
-    """
 
     path = 'mp3 music/'
     files = []
@@ -107,29 +104,32 @@ def make_long_menu(load_bar):
                                       theme=theme,
                                       title='[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
                                                              '-'.join(', '.join(tag.title.split('/')).split(':'))),
-                                      width=width
+                                      width=width,
+                                      columns=3,
+                                      rows=[3, 2, 3]
                                       )
-        track_menu.add.button('Play track', play_music, track, align=pygame_menu.locals.ALIGN_LEFT,
-                              background_color=(0, 128, 0), float=False, font_size=font_size, font_color=(0, 0, 0),
-                              selection_color=(0, 0, 0), border_color=(0, 0, 0))
-        track_menu.add.button('>>10>>', ff, track, align=pygame_menu.locals.ALIGN_LEFT,
-                              background_color=(0, 128, 0), float=False, font_size=font_size, font_color=(0, 0, 0),
-                              selection_color=(0, 0, 0), border_color=(0, 0, 0))
-        prbar = track_menu.add.progress_bar('Record progress:', 0, float=True, font_size=font_size, font_collor=(0, 0, 0),
-                                            box_background_color=out)
-        track_menu.add.button('Record the chant', ini_record, track_menu, prbar,
-                              align=pygame_menu.locals.ALIGN_RIGHT, background_color=(214, 70, 54),
-                              float=True, font_size=font_size, font_color=(0, 0, 0), selection_color=(0, 0, 0),
+
+        btncol = (out[0] // 2, out[1] // 2, out[2] // 2)
+        textcol = (out[0] // 2 + 100, out[1] // 2 + 100, out[2] // 2 + 100)
+        track_menu.add.button('Прослушать трек', play_music, track, background_color=btncol, float=False,
+                              font_size=font_size, font_color=textcol,
+                              selection_color=textcol, border_color=(0, 0, 0))
+        track_menu.add.button('>>10>>', ff, background_color=btncol, float=False, font_size=font_size,
+                              font_color=textcol, selection_color=textcol, border_color=(0, 0, 0))
+        track_menu.add.button('<<10<<', rev, background_color=btncol, float=False, font_size=font_size,
+                              font_color=textcol, selection_color=textcol, border_color=(0, 0, 0))
+        prbar = track_menu.add.progress_bar('Прогресс записи:', 0, float=False, font_size=font_size,
+                                            font_collor=textcol, box_background_color=out)
+        track_menu.add.image('cover.png', angle=0, scale=(1, 1), float=False)
+        track_menu.add.button('Записать напев', ini_record, track_menu, prbar,  background_color=btncol,
+                              float=False, font_size=font_size, font_color=textcol, selection_color=textcol,
                               border_color=(0, 0, 0))
-        track_menu.add.button('Listen record', lisn_chant, track_menu, prbar,
-                              align=pygame_menu.locals.ALIGN_RIGHT, background_color=(154, 205, 50),
-                              float=False, font_size=font_size, font_color=(0, 0, 0), selection_color=(0, 0, 0),
+        track_menu.add.button('Прослушать запись', lisn_chant, track_menu, prbar, background_color=btncol,
+                              float=False, font_size=font_size, font_color=textcol, selection_color=textcol,
                               border_color=(0, 0, 0))
-        track_menu.add.button('Delete record', del_chant, track_menu, prbar,
-                              align=pygame_menu.locals.ALIGN_RIGHT, background_color=(139, 0, 0),
-                              float=False, font_size=font_size, font_color=(0, 0, 0), selection_color=(0, 0, 0),
+        track_menu.add.button('Удалить запись', del_chant, track_menu, prbar, background_color=btncol,
+                              float=False, font_size=font_size, font_color=textcol, selection_color=textcol,
                               border_color=(0, 0, 0))
-        track_menu.add.image('cover.png', angle=0, scale=(1, 1), float=True)
 
         menu.add.button(track_menu.get_title(), track_menu)
 
@@ -137,21 +137,29 @@ def make_long_menu(load_bar):
 
 
 def play_music(filepath):
+    global start_pos
+    start_pos = 0
     pygame.mixer.music.load(os.path.join(os.path.abspath(os.curdir), filepath))
     pygame.mixer.music.play()
 
 
-def ff(filepath):
+def ff():
+    global start_pos
     oldsongtime = pygame.mixer.music.get_pos()
     change = 10000
-    print(oldsongtime)
-    pygame.mixer.music.play(0, start=(oldsongtime + change) / 1000)
-    addedtime = pygame.mixer.music.get_pos()
-    print(addedtime)
+    pygame.mixer.stop()
+    start_pos += (oldsongtime + change) // 1000
+    pygame.mixer.music.play(0, start=start_pos)
 
 
-def rev(filepath):
-    pass
+def rev():
+    global start_pos
+    oldsongtime = pygame.mixer.music.get_pos()
+    change = 10000
+    pygame.mixer.stop()
+    start_pos += (oldsongtime - change) // 1000
+    pygame.mixer.music.play(0, start=start_pos)
+
 
 def reco(men):
     if not os.path.exists('chants/' + str(men.get_title()) + '/'):
@@ -233,15 +241,9 @@ def del_chant(men, barx):
 
 def main(test=False):
     global rec
-    """
-    Main function.
-    :param test: Indicate function is being tested
-    :return: None
-    """
 
     clock = pygame.time.Clock()
 
-    # Main menu, pauses execution of the application
     loading = pygame_menu.Menu(
         height=height,
         onclose=pygame_menu.events.EXIT,
@@ -250,14 +252,11 @@ def main(test=False):
         width=width
     )
 
-    load_progress = loading.add.progress_bar('', font_size=(font_size + 10), font_collor=(0, 0, 0),
+    load_progress = loading.add.progress_bar('', font_size=(font_size + 10), progress_text_font_color=(0, 0, 0),
                                              width=(width - 300))
     load_tr = Thread(target=make_long_menu, args=(load_progress, ))
     load_tr.start()
 
-    # -------------------------------------------------------------------------
-    # Main loop
-    # -------------------------------------------------------------------------
     tick = 0
     while load:
         clock.tick(FPS)
@@ -267,14 +266,12 @@ def main(test=False):
             fps_limit=FPS
         )
 
-        # Update surface
         pygame.display.flip()
 
     loading.add.button('Начать', menu)
 
     while True:
 
-        # Tick
         clock.tick(FPS)
 
         tick += 1
@@ -286,20 +283,14 @@ def main(test=False):
             if tick == 30:
                 tick = 0
 
-        # Paint background
-        # paint_background(screen)
-
-        # Execute main from principal menu if is enabled
         loading.mainloop(
             surface=screen,
             disable_loop=True,
             fps_limit=FPS
         )
 
-        # Update surface
         pygame.display.flip()
 
-        # At first loop returns
         if test:
             break
 
