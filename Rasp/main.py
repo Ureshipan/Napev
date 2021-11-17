@@ -1,5 +1,6 @@
 __all__ = ['main']
-#bruh
+
+# bruh
 import pyaudio
 import pydub
 import wave
@@ -10,6 +11,7 @@ import pygame
 import pygame_menu
 
 import os
+import getpass
 
 from tinytag import TinyTag
 
@@ -17,7 +19,14 @@ from PIL import Image
 
 from threading import Thread
 
-pydub.AudioSegment.converter = r"ffmpeg-2021-11-15-git-9e8cdb24cd-full_build\bin\ffmpeg.exe"
+import posixpath
+import os
+import yadisk
+
+pydub.AudioSegment.converter = r"C:\Users\Test\Documents\ffmpeg-2021-11-10-git-44c65c6cc0-full_build\bin\ffmpeg.exe"
+# r"ffmpeg-2021-11-15-git-9e8cdb24cd-full_build\bin\ffmpeg.exe"
+
+USERNAME = getpass.getuser()
 CHUNK = 1024
 FORMAT = pyaudio.paInt32
 CHANNELS = 1
@@ -64,7 +73,7 @@ def make_long_menu(load_bar):
     pr = 0
     for track in files:
         pr += 1
-        print(int(pr / len(files) * 100))
+        #print(int(pr / len(files) * 100))
         load_bar.set_value(int(pr / len(files) * 100))
         tag = TinyTag.get(track, image=True)
         f = open('cover.png', 'wb')
@@ -94,7 +103,7 @@ def make_long_menu(load_bar):
         out[1] = int(sq[1] / count)
         out[2] = int(sq[2] / count)
 
-        print('[{}]: \"{}\" Success'.format(tag.artist, tag.title))
+        #print('[{}]: \"{}\" Success'.format(tag.artist, tag.title))
         theme = pygame_menu.themes.THEME_GREEN.copy()
         theme.title_font_size = font_size
         theme.title_bar_style = pygame_menu.widgets.MENUBAR_STYLE_SIMPLE
@@ -121,7 +130,7 @@ def make_long_menu(load_bar):
         prbar = track_menu.add.progress_bar('Прогресс записи:', 0, float=False, font_size=font_size,
                                             font_collor=textcol, box_background_color=out)
         track_menu.add.image('cover.png', angle=0, scale=(1, 1), float=False)
-        track_menu.add.button('Записать напев', ini_record, track_menu, prbar,  background_color=btncol,
+        track_menu.add.button('Записать напев', ini_record, track_menu, prbar, background_color=btncol,
                               float=False, font_size=font_size, font_color=textcol, selection_color=textcol,
                               border_color=(0, 0, 0))
         track_menu.add.button('Прослушать запись', lisn_chant, track_menu, prbar, background_color=btncol,
@@ -239,6 +248,31 @@ def del_chant(men, barx):
         barx.set_value(0)
 
 
+def send_chants():
+    y = yadisk.YaDisk(token="AQAAAABab71QAAeB0z37z1Aq8UnUuLlrpRWG16Q")
+    print(y.check_token())
+    to_dir = '/' + USERNAME
+    from_dir = 'chants/'
+    for root, dirs, files in os.walk(from_dir):
+        print('try')
+        p = root.split(from_dir)[1].strip(os.path.sep)
+        dir_path = posixpath.join(to_dir, p)
+        #print(dir_path)
+        try:
+            y.mkdir(dir_path)
+        except yadisk.exceptions.PathExistsError:
+            pass
+        for file in files:
+            file_path = posixpath.join(dir_path, file)
+            p_sys = p.replace("/", os.path.sep)
+            in_path = os.path.join(from_dir, p_sys, file)
+            #print(in_path, file_path)
+            try:
+                y.upload(in_path, file_path, overwrite=True)
+            except yadisk.exceptions.PathExistsError:
+                pass
+
+
 def main(test=False):
     global rec
 
@@ -252,9 +286,10 @@ def main(test=False):
         width=width
     )
 
+    loading.add.button('Отправить всё записанное', send_chants)
     load_progress = loading.add.progress_bar('', font_size=(font_size + 10), progress_text_font_color=(0, 0, 0),
                                              width=(width - 300))
-    load_tr = Thread(target=make_long_menu, args=(load_progress, ))
+    load_tr = Thread(target=make_long_menu, args=(load_progress,))
     load_tr.start()
 
     tick = 0
