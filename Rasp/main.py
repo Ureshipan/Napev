@@ -23,11 +23,11 @@ import posixpath
 import os
 import yadisk
 
-pydub.AudioSegment.converter = r"ffmpeg-2021-11-15-git-9e8cdb24cd-full_build\bin\ffmpeg.exe"
+pydub.AudioSegment.converter = r"ffmpeg\bin\ffmpeg.exe"
 
 USERNAME = getpass.getuser()
 CHUNK = 1024
-FORMAT = pyaudio.paInt32
+FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 10
@@ -169,7 +169,8 @@ def rev():
     pygame.mixer.music.play(0, start=start_pos)
 
 
-def reco(men):
+def reco(men, barx):
+    global rec, bar
     if not os.path.exists('chants/' + str(men.get_title()) + '/'):
         os.mkdir('chants/' + str(men.get_title()) + '/')
 
@@ -182,6 +183,9 @@ def reco(men):
     p = pyaudio.PyAudio()
     pygame.mixer.music.stop()
     pygame.mixer.music.unload()
+    log = open('mic_info.log', 'w')
+    log.write(str(p.get_default_input_device_info()))
+    log.close()
 
     stream = p.open(format=FORMAT,
                     channels=CHANNELS,
@@ -193,7 +197,8 @@ def reco(men):
     print("* recording")
 
     frames = []
-
+    rec = True
+    bar = barx
     for i in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
         data = stream.read(CHUNK)
         frames.append(data)
@@ -215,15 +220,13 @@ def reco(men):
     sound = pydub.AudioSegment.from_wav(wavfilename)
     sound.export(mp3filename, format="mp3")
     os.remove(wavfilename)
+    bar.set_value(100)
 
 
 def ini_record(men, barx):
     global rec, bar
     if not rec:
-        rec = True
-        bar = barx
-
-        th = Thread(target=reco, args=(men,))
+        th = Thread(target=reco, args=(men, barx, ))
         th.start()
 
 
@@ -249,11 +252,11 @@ def del_chant(men, barx):
 
 def send_chants():
     y = yadisk.YaDisk(token="AQAAAABab71QAAeB0z37z1Aq8UnUuLlrpRWG16Q")
-    print(y.check_token())
+    #print(y.check_token())
     to_dir = '/' + USERNAME
     from_dir = 'chants/'
     for root, dirs, files in os.walk(from_dir):
-        print('try')
+        #print('try')
         p = root.split(from_dir)[1].strip(os.path.sep)
         dir_path = posixpath.join(to_dir, p)
         #print(dir_path)
@@ -271,6 +274,10 @@ def send_chants():
             except yadisk.exceptions.PathExistsError:
                 pass
 
+def send_btn():
+    th_send = Thread(target=send_chants(), args=())
+    th_send.start()
+
 
 def main(test=False):
     global rec
@@ -285,7 +292,7 @@ def main(test=False):
         width=width
     )
 
-    loading.add.button('Отправить всё записанное', send_chants)
+    loading.add.button('Отправить всё записанное', send_btn)
     load_progress = loading.add.progress_bar('', font_size=(font_size + 10), progress_text_font_color=(0, 0, 0),
                                              width=(width - 300))
     load_tr = Thread(target=make_long_menu, args=(load_progress,))
@@ -312,7 +319,7 @@ def main(test=False):
         if tick % 3 == 0:
             if rec:
                 bar.set_value(bar.get_value() + 1)
-                if bar.get_value() == 100:
+                if bar.get_value() == 99:
                     rec = False
             if tick == 30:
                 tick = 0
