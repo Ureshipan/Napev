@@ -287,9 +287,9 @@ def run(file_in, file_out):
     
 
 print("Welcome!")
-file_in = sys.argv[1]
-file_out = sys.argv[2]
-print(sys.argv[1], sys.argv[2])    
-run(file_in, file_out)
+#file_in = sys.argv[1]
+#file_out = sys.argv[2]
+#print(sys.argv[1], sys.argv[2])
+#run(file_in, file_out)
 
     
