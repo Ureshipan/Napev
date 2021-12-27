@@ -23,7 +23,7 @@ import posixpath
 import os
 import yadisk
 
-pydub.AudioSegment.converter = r"ffmpeg\bin\ffmpeg.exe"
+#pydub.AudioSegment.converter = r"ffmpeg\bin\ffmpeg.exe"
 
 USERNAME = getpass.getuser()
 CHUNK = 1024

@@ -1,6 +1,6 @@
 import IPython.display
 from ipywidgets import interact, interactive, fixed
-
+import ffmpeg
 # Packages we're using
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,6 +12,9 @@ from tinytag import TinyTag
 # import audio2midi
 import os
 from pydub import AudioSegment
+
+
+#AudioSegment.converter = r'C:\Users\tipte\PycharmProjects\Napev\Rasp\ffmpeg\bin\ '
 
 
 def butter_bandpass(lowcut, highcut, fs, order=5):
@@ -48,7 +51,7 @@ def overlap(X, window_size, window_step):
         raise ValueError("Window size must be even!")
     # Make sure there are an even number of windows before stridetricks
     append = np.zeros((window_size - len(X) % window_size))
-    X = np.column_stack((X, append))
+    X = np.hstack((X, append))
 
     ws = window_size
     ss = window_step
@@ -67,7 +70,9 @@ def overlap(X, window_size, window_step):
     return out
 
 
-def stft(X, fftsize=128, step=65, mean_normalize=True, real=False, compute_onesided=True):
+def stft(
+    X, fftsize=128, step=65, mean_normalize=True, real=False, compute_onesided=True
+):
     """
     Compute STFT for 1D real valued input X
     """
@@ -106,19 +111,20 @@ def pretty_spectrogram(d, log=True, thresh=5, fft_size=512, step_size=64):
         specgram = np.log10(specgram)  # take log
         specgram[
             specgram < -thresh
-            ] = -thresh  # set anything less than the threshold as the threshold
+        ] = -thresh  # set anything less than the threshold as the threshold
     else:
         specgram[
             specgram < thresh
-            ] = thresh  # set anything less than the threshold as the threshold
+        ] = thresh  # set anything less than the threshold as the threshold
 
     return specgram
 
 
 # Also mostly modified or taken from https://gist.github.com/kastnerkyle/179d6e9a88202ab0a2fe
 def invert_pretty_spectrogram(
-        X_s, log=True, fft_size=512, step_size=512 / 4, n_iter=10
+    X_s, log=True, fft_size=512, step_size=512 / 4, n_iter=10
 ):
+
     if log == True:
         X_s = np.power(10, X_s)
 
@@ -214,13 +220,13 @@ def invert_spectrogram(X_s, step, calculate_offset=True, set_zero_phase=True):
                 )
                 offset_size = step
             offset = xcorr_offset(
-                wave[wave_start: wave_start + offset_size],
-                wave_est[est_start: est_start + offset_size],
+                wave[wave_start : wave_start + offset_size],
+                wave_est[est_start : est_start + offset_size],
             )
         else:
             offset = 0
         wave[wave_start:wave_end] += (
-                win * wave_est[est_start - offset: est_end - offset]
+            win * wave_est[est_start - offset : est_end - offset]
         )
         total_windowing_sum[wave_start:wave_end] += win
     wave = np.real(wave) / (total_windowing_sum + 1e-6)
@@ -327,7 +333,7 @@ def get_filterbanks(nfilt=20, nfft=512, samplerate=16000, lowfreq=0, highfreq=No
 
 
 def create_mel_filter(
-        fft_size, n_freq_components=64, start_freq=300, end_freq=8000, samplerate=44100
+    fft_size, n_freq_components=64, start_freq=300, end_freq=8000, samplerate=44100
 ):
     """
     Creates a filter to convolve with the spectrogram to get out mels
@@ -348,9 +354,9 @@ def create_mel_filter(
 
 # ===========================================================================================
 ### Parameters ###
-fft_size = 64  # window size for the FFT
+fft_size = 2048  # window size for the FFT
 step_size = fft_size // 16  # distance to slide along the window (in time)
-spec_thresh = 4  # threshold for spectrograms (lower filters out more noise)
+spec_thresh = 3  # threshold for spectrograms (lower filters out more noise)
 lowcut = 500  # Hz # Low cut for our butter bandpass filter
 highcut = 15000  # Hz # High cut for our butter bandpass filter
 # For mels
@@ -369,9 +375,12 @@ pr = 0
 for track in files:
     pr += 1
     tag = TinyTag.get(track, image=False)
-    chant_dir = 'chants/' + '-'.join(', '.join(tag.title.split('/')).split(':')) + '/'
-    wav_dir = 'WAVs/' + '-'.join(', '.join(tag.title.split('/')).split(':')) + '/'
-    out_dir = 'gramms/' + '-'.join(', '.join(tag.title.split('/')).split(':')) + '/'
+    chant_dir = 'chants/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
+                                             '-'.join(', '.join(tag.title.split('/')).split(':'))) + '/'
+    wav_dir = 'WAVs/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
+                                         '-'.join(', '.join(tag.title.split('/')).split(':'))) + '/'
+    out_dir = 'gramms/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
+                                           '-'.join(', '.join(tag.title.split('/')).split(':'))) + '/'
     try:
         os.mkdir(wav_dir)
     except:
@@ -388,9 +397,10 @@ for track in files:
         chants[i] = chant_dir + chants[i]
     for chant in chants:
         sound = AudioSegment.from_mp3(chant)
+        sound = sound.set_channels(1)
         sound.export(wav_dir + chant.split('.')[0].split('/')[-1] + ".wav", format="wav")
-    print(track)
     sound = AudioSegment.from_mp3(track)
+    sound = sound.set_channels(1)
     sound.export(wav_dir + 'track' + ".wav", format="wav")
 
     wavs = []
@@ -402,12 +412,17 @@ for track in files:
         # Grab your wav and filter it
         print(wav)
         mywav = wav
+        sound = AudioSegment.from_wav(mywav)
+        sound = sound.set_channels(1)
+        sound.export(mywav, format="wav")
         rate, data = wavfile.read(mywav)
         data = butter_bandpass_filter(data, lowcut, highcut, rate, order=1)
         # Only use a short clip for our demo
-        if np.shape(data)[0] / float(rate) > 10:
-            data = data[0: rate * 10]
-        print("Length in time (s): ", np.shape(data)[0])# / float(rate))
+        # if np.shape(data)[0] / float(rate) > 10:
+        # data = data[0 : rate * 10]
+        print("Length in time (s): ", np.shape(data)[0] / float(rate))
+        # Play the audio
+        IPython.display.Audio(data=data, rate=rate)
 
         wav_spectrogram = pretty_spectrogram(
             data.astype("float64"),
@@ -417,15 +432,22 @@ for track in files:
             thresh=spec_thresh,
         )
 
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(20, 4))
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(round(np.shape(data)[0] / float(rate), 0), 4))
         cax = ax.matshow(
             np.transpose(wav_spectrogram),
             interpolation="nearest",
             aspect="auto",
-            cmap=plt.cm.afmhot,
+            cmap=plt.cm.gray,
             origin="lower",
         )
-        fig.colorbar(cax)
-        plt.title("Original Spectrogram")
+        #fig.colorbar(cax)
+        fig.patch.set_visible(False)
+        plt.axis('off')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_visible(False)
+        ax.spines['left'].set_visible(False)
+        plt.savefig(out_dir + wav.split('/')[-1].split('.')[0] + '.png')
+        plt.clf()
+        plt.close(fig)
 
-        wait = input()

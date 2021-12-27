@@ -2,7 +2,7 @@ from tinytag import TinyTag
 #import audio2midi
 import os
 from pydub import AudioSegment
-AudioSegment.converter = r"ffmpeg\bin\ffmpeg.exe"
+AudioSegment.converter = r"C:\Users\tipte\PycharmProjects\Napev\Rasp\ffmpeg\bin\ffmpeg.exe"
 
 # -*- coding: utf-8 -*-
 """
