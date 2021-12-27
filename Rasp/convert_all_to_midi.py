@@ -300,9 +300,9 @@ pr = 0
 for track in files:
     pr += 1
     tag = TinyTag.get(track, image=False)
-    chant_dir = 'chants/' + '-'.join(', '.join(tag.title.split('/')).split(':'))
-    wav_dir = 'WAVs/' + '-'.join(', '.join(tag.title.split('/')).split(':'))
-    out_dir = 'MIDIs/' + '-'.join(', '.join(tag.title.split('/')).split(':'))
+    chant_dir = 'chants/' + '-'.join(', '.join(tag.title.split('/')).split(':')) + '/'
+    wav_dir = 'WAVs/' + '-'.join(', '.join(tag.title.split('/')).split(':')) + '/'
+    out_dir = 'MIDIs/' + '-'.join(', '.join(tag.title.split('/')).split(':')) + '/'
     try:
         os.mkdir(wav_dir)
     except:
