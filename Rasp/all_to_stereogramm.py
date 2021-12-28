@@ -353,6 +353,29 @@ def create_mel_filter(
     return mel_filter, mel_inversion_filter
 
 
+def printProgressBar(iteration, total, prefix='Progress:', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(printEnd, end='')
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end='')
+    # Print New Line on Complete
+    if iteration == total:
+        print()
+
+
 # ===========================================================================================
 ### Parameters ###
 fft_size = 2048  # window size for the FFT
@@ -372,84 +395,87 @@ for root, dirs, file in os.walk('mp3 music/'):
 for i in range(len(files)):
     files[i] = 'mp3 music/' + files[i]
 
-
-bar = IncrementalBar('Прогресс конвертации:', max=len(files))
+pr = 0
+flag = False
 for track in files:
-    tag = TinyTag.get(track, image=False)
-    chant_dir = 'chants/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                             ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
-    wav_dir = 'WAVs/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                         ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
-    out_dir = 'gramms/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                           ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
-    try:
-        os.mkdir(wav_dir)
-    except:
-        pass
-    try:
-        os.mkdir(out_dir)
-    except:
-        pass
+    if 'The Engineer' in track:
+        flag = True
+    if flag:
+        tag = TinyTag.get(track, image=False)
+        track_name = '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
+                                      ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"')))
+        printProgressBar(pr, len(files), suffix=track_name)
+        chant_dir = 'chants/' + track_name + '/'
+        wav_dir = 'WAVs/' + track_name + '/'
+        out_dir = 'gramms/' + track_name + '/'
+        try:
+            os.mkdir(wav_dir)
+        except:
+            pass
+        try:
+            os.mkdir(out_dir)
+        except:
+            pass
 
-    chants = []
-    for root, dirs, file in os.walk(chant_dir):
-        chants = file
-    for i in range(len(chants)):
-        chants[i] = chant_dir + chants[i]
-    for chant in chants:
-        sound = AudioSegment.from_mp3(chant)
+        chants = []
+        for root, dirs, file in os.walk(chant_dir):
+            chants = file
+        for i in range(len(chants)):
+            chants[i] = chant_dir + chants[i]
+        for chant in chants:
+            sound = AudioSegment.from_mp3(chant)
+            sound = sound.set_channels(1)
+            sound.export(wav_dir + chant.split('.')[0].split('/')[-1] + ".wav", format="wav")
+        sound = AudioSegment.from_mp3(track)
         sound = sound.set_channels(1)
-        sound.export(wav_dir + chant.split('.')[0].split('/')[-1] + ".wav", format="wav")
-    sound = AudioSegment.from_mp3(track)
-    sound = sound.set_channels(1)
-    sound.export(wav_dir + 'track' + ".wav", format="wav")
+        sound.export(wav_dir + 'track' + ".wav", format="wav")
 
-    wavs = []
-    for root, dirs, file in os.walk(wav_dir):
-        wavs = file
-    for i in range(len(wavs)):
-        wavs[i] = wav_dir + wavs[i]
-    for wav in wavs:
-        # Grab your wav and filter it
-        mywav = wav
-        sound = AudioSegment.from_wav(mywav)
-        sound = sound.set_channels(1)
-        sound.export(mywav, format="wav")
-        rate, data = wavfile.read(mywav)
-        data = butter_bandpass_filter(data, lowcut, highcut, rate, order=1)
-        # Only use a short clip for our demo
-        # if np.shape(data)[0] / float(rate) > 10:
-        # data = data[0 : rate * 10]
-        # Play the audio
-        IPython.display.Audio(data=data, rate=rate)
+        wavs = []
+        for root, dirs, file in os.walk(wav_dir):
+            wavs = file
+        for i in range(len(wavs)):
+            wavs[i] = wav_dir + wavs[i]
+        for wav in wavs:
+            # Grab your wav and filter it
+            mywav = wav
+            sound = AudioSegment.from_wav(mywav)
+            sound = sound.set_channels(1)
+            sound.export(mywav, format="wav")
+            rate, data = wavfile.read(mywav)
+            data = butter_bandpass_filter(data, lowcut, highcut, rate, order=1)
+            # Only use a short clip for our demo
+            # if np.shape(data)[0] / float(rate) > 10:
+            # data = data[0 : rate * 10]
+            # Play the audio
+            IPython.display.Audio(data=data, rate=rate)
 
-        wav_spectrogram = pretty_spectrogram(
-            data.astype("float64"),
-            fft_size=fft_size,
-            step_size=step_size,
-            log=True,
-            thresh=spec_thresh,
-        )
+            wav_spectrogram = pretty_spectrogram(
+                data.astype("float64"),
+                fft_size=fft_size,
+                step_size=step_size,
+                log=True,
+                thresh=spec_thresh,
+            )
 
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(round(np.shape(data)[0] / float(rate), 0), 4))
-        cax = ax.matshow(
-            np.transpose(wav_spectrogram),
-            interpolation="nearest",
-            aspect="auto",
-            cmap=plt.cm.gray,
-            origin="lower",
-        )
-        #fig.colorbar(cax)
-        fig.patch.set_visible(False)
-        plt.axis('off')
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.spines['bottom'].set_visible(False)
-        ax.spines['left'].set_visible(False)
-        plt.savefig(out_dir + wav.split('/')[-1].split('.')[0] + '.png', bbox_inches='tight')
-        bar.next()
-        plt.clf()
-        plt.close(fig)
-bar.finish()
+            fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(round(np.shape(data)[0] / float(rate), 0), 4))
+            cax = ax.matshow(
+                np.transpose(wav_spectrogram),
+                interpolation="nearest",
+                aspect="auto",
+                cmap=plt.cm.gray,
+                origin="lower",
+            )
+            #fig.colorbar(cax)
+            fig.patch.set_visible(False)
+            plt.axis('off')
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['bottom'].set_visible(False)
+            ax.spines['left'].set_visible(False)
+            plt.savefig(out_dir + wav.split('/')[-1].split('.')[0] + '.png', bbox_inches='tight')
+            plt.clf()
+            plt.close(fig)
+    pr += 1
+#bar.finish()
 wait = input('Чтобы выйти нажмите ENTER ')
 
