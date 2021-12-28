@@ -12,6 +12,7 @@ from tinytag import TinyTag
 # import audio2midi
 import os
 from pydub import AudioSegment
+from progress.bar import IncrementalBar
 
 
 #AudioSegment.converter = r'C:\Users\tipte\PycharmProjects\Napev\Rasp\ffmpeg\bin\ '
@@ -371,9 +372,9 @@ for root, dirs, file in os.walk('mp3 music/'):
 for i in range(len(files)):
     files[i] = 'mp3 music/' + files[i]
 
-pr = 0
+
+bar = IncrementalBar('Прогресс конвертации:', max=len(files))
 for track in files:
-    pr += 1
     tag = TinyTag.get(track, image=False)
     chant_dir = 'chants/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
                                              ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
@@ -410,7 +411,6 @@ for track in files:
         wavs[i] = wav_dir + wavs[i]
     for wav in wavs:
         # Grab your wav and filter it
-        print(wav)
         mywav = wav
         sound = AudioSegment.from_wav(mywav)
         sound = sound.set_channels(1)
@@ -420,7 +420,6 @@ for track in files:
         # Only use a short clip for our demo
         # if np.shape(data)[0] / float(rate) > 10:
         # data = data[0 : rate * 10]
-        print("Length in time (s): ", np.shape(data)[0] / float(rate))
         # Play the audio
         IPython.display.Audio(data=data, rate=rate)
 
@@ -448,6 +447,9 @@ for track in files:
         ax.spines['bottom'].set_visible(False)
         ax.spines['left'].set_visible(False)
         plt.savefig(out_dir + wav.split('/')[-1].split('.')[0] + '.png', bbox_inches='tight')
+        bar.next()
         plt.clf()
         plt.close(fig)
+bar.finish()
+wait = input('Чтобы выйти нажмите ENTER ')
 
