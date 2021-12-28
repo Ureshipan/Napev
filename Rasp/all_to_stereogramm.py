@@ -376,11 +376,11 @@ for track in files:
     pr += 1
     tag = TinyTag.get(track, image=False)
     chant_dir = 'chants/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                             '-'.join(', '.join(tag.title.split('/')).split(':'))) + '/'
+                                             '|'.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
     wav_dir = 'WAVs/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                         '-'.join(', '.join(tag.title.split('/')).split(':'))) + '/'
+                                         '|'.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
     out_dir = 'gramms/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                           '-'.join(', '.join(tag.title.split('/')).split(':'))) + '/'
+                                           '|'.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
     try:
         os.mkdir(wav_dir)
     except:
