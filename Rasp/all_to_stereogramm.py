@@ -376,11 +376,11 @@ for track in files:
     pr += 1
     tag = TinyTag.get(track, image=False)
     chant_dir = 'chants/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                             '|'.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
+                                             ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
     wav_dir = 'WAVs/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                         '|'.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
+                                         ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
     out_dir = 'gramms/' + '[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                           '|'.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
+                                           ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))) + '/'
     try:
         os.mkdir(wav_dir)
     except:
@@ -447,7 +447,7 @@ for track in files:
         ax.spines['right'].set_visible(False)
         ax.spines['bottom'].set_visible(False)
         ax.spines['left'].set_visible(False)
-        plt.savefig(out_dir + wav.split('/')[-1].split('.')[0] + '.png')
+        plt.savefig(out_dir + wav.split('/')[-1].split('.')[0] + '.png', bbox_inches='tight')
         plt.clf()
         plt.close(fig)
 

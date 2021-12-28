@@ -111,7 +111,7 @@ def make_long_menu(load_bar):
                                       onclose=pygame_menu.events.EXIT,
                                       theme=theme,
                                       title='[{}] {}'.format('-'.join(', '.join(tag.artist.split('/')).split(':')),
-                                                             '|'.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))),
+                                                             ''.join('-'.join(', '.join(tag.title.split('/')).split(':')).split('"'))),
                                       width=width,
                                       columns=3,
                                       rows=[3, 2, 3]
